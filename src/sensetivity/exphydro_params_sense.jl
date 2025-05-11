@@ -20,10 +20,17 @@ pas_axes = getaxes(pas)
 initstates = ComponentVector(snowpack=0.0, soilwater=1300.0)
 config = (solver=HydroModels.ODESolver(), interp=LinearInterpolation)
 output = exphydro_model(input_arr, pas, initstates=initstates, config=config)
-nse(y, y_hat) = 1 - sum((y - y_hat).^2) / sum((y .- mean(y)).^2)
+function sum_every_n_mapreduce(vec::Vector{T}, n::Int) where T
+    groups = (length(vec) + n - 1) ÷ n
+    [mapreduce(j -> get(vec, (i-1)*n + j, zero(T)), +, 1:n) for i in 1:groups]
+end
+
+output_sum = sum_every_n_mapreduce(output[end, :], 100)
+
+nse(y, y_hat) = 1 - sum((y - y_hat) .^ 2) / sum((y .- mean(y)) .^ 2)
 function temp_func(p)
     output = exphydro_model(input_arr, ComponentVector(p, pas_axes), initstates=initstates, config=config)[end, :]
-    return [mean(output), maximum(output), nse(q_vec, output)]
+    return sum_every_n_mapreduce(output[end, :], 100)
 end
 bounds = [[0.0, 0.1], [100.0, 2000.0], [10.0, 50.0], [0.0, 5.0], [0.0, 3.0], [-3.0, 0.0]]
 reg_sens = gsa(temp_func, RegressionGSA(true), bounds; samples=1000)

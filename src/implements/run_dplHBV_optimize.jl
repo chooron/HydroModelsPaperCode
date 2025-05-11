@@ -9,8 +9,8 @@ using Plots
 using HydroModels
 using Zygote
 
-include("../../models/dplHBV.jl")
-include("loss_functions.jl")
+include("../../models/dplHBV_slight.jl")
+include("../../models/loss_func.jl")
 
 #* load data
 df = DataFrame(CSV.File("data/exphydro/01013500.csv"));
@@ -37,7 +37,7 @@ config = (solver=ODESolver(), timeidx=ts, interp=LinearInterpolation)
 predict_before_opt = dpl_hbv_model(input_arr, pas, initstates=init_states, config=config)
 
 #* define optimization problem
-loss_fn(y, y_hat) = mse(y[365:end], y_hat[end, 365:end])
+loss_fn(y, y_hat) = rse(y[365:end], y_hat[end, 365:end])
 objective(p, _) = loss_fn(qobs_vec, dpl_hbv_model(input_arr, ComponentVector(p, ps_axes), initstates=init_states, config=config))
 optfunc = Optimization.OptimizationFunction(objective, Optimization.AutoZygote())
 optprob = Optimization.OptimizationProblem(optfunc, pas |> Vector)

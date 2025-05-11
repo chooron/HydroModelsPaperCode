@@ -1,24 +1,12 @@
-using CSV
-using DataFrames
-using Lux
-using ModelingToolkit
-using LuxCore
-using StableRNGs
-using ComponentArrays
-using DataInterpolations
-using OrdinaryDiffEq
+using CSV, DataFrames, JLD2, Dates
+using Lux, StableRNGs, ComponentArrays
+using DataInterpolations, SciMLSensitivity, OrdinaryDiffEq
+using OptimizationBBO, Optimization
 using Statistics
-using BenchmarkTools
 using Plots
-using OptimizationBBO
-using SciMLSensitivity
-using JLD2
-# using HydroModels
-include("../../../src/HydroModels.jl")
-include("../models/exphydro.jl")
-# model_grad_opt = HydroModels.GradOptimizer(component=exphydro_model, solve_alg=Adam(1e-2), adtype=Optimization.AutoForwardDiff(), maxiters=100)
+using HydroModels
 
-
+include("../../models/exphydro.jl")
 # load data
 file_path = "data/exphydro/01013500.csv"
 data = CSV.File(file_path);

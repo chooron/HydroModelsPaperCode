@@ -1,8 +1,6 @@
 using Lux
 using HydroModels
-using HydroModels: @neuralflux, @stateflux, @hydroflux, @hydromodel, @hydrobucket
-
-step_func(x) = (tanh(5.0 * x) + 1.0) * 0.5
+using HydroModels: @neuralflux, @stateflux, @hydroflux, @hydromodel, @hydrobucket, step_func
 
 function LSTMCompact(in_dims, hidden_dims, out_dims)
     lstm_cell = LSTMCell(in_dims => hidden_dims)

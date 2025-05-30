@@ -6,3 +6,4 @@ data/Cance
 .venv
 .env
 .env.local
+src/benchmark/libs/superflexPy/

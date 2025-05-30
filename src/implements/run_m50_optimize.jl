@@ -59,41 +59,41 @@ var_stds = NamedTuple{Tuple([Symbol(nm, :_std) for nm in norm_vars])}(stds)
 var_means = NamedTuple{Tuple([Symbol(nm, :_mean) for nm in norm_vars])}(means)
 params = reduce(merge, [NamedTuple(exphydro_opt_params), var_means, var_stds])
 pretrained_pas = ComponentVector(params=params, nns=(epnn=ep_sol.u, qnn=q_sol.u))
-pas_axes = getaxes(pretrained_pas)
+pas_axes = getaxes(pretrained_pas)image.png
 input_mat = stack(input[HydroModels.get_input_names(m50_model)], dims=1)
 config = (solver=HydroModels.ODESolver(sensealg=GaussAdjoint(autojacvec=EnzymeVJP())), interp=LinearInterpolation)
-#* 3 define the optimization problem
-m50_objective(p, _) = begin
-    rse(
-        flow_vec,
-        m50_model(
-            input_mat, ComponentVector(p, pas_axes),
-            initstates=exphydro_initstates, config=config
-        )[end, :]
-    )
-end
-m50_opt_prob = OptimizationProblem(OptimizationFunction(m50_objective, AutoZygote()), pretrained_pas |> Vector)
-#* 4 define the callback function
-loss_history = []
-callback_func!(state, l) = begin
-    push!(loss_history, (iter=state.iter, loss=l, time=now()))
-    println("iter: $(state.iter), loss: $l, time: $(now())")
-    false
-end
-#* 5 solve the optimization problem
-m50_sol = solve(m50_opt_prob, Adam(1e-2), maxiters=100, callback=callback_func!)
-#* 6 more training
-more_m50_opt_prob = OptimizationProblem(OptimizationFunction(m50_objective, AutoZygote()), m50_sol.u)
-more_m50_sol = solve(more_m50_opt_prob, LBFGS(linesearch = BackTracking()), maxiters=20, callback=callback_func!)
+# #* 3 define the optimization problem
+# m50_objective(p, _) = begin
+#     rse(
+#         flow_vec,
+#         m50_model(
+#             input_mat, ComponentVector(p, pas_axes),
+#             initstates=exphydro_initstates, config=config
+#         )[end, :]
+#     )
+# end
+# m50_opt_prob = OptimizationProblem(OptimizationFunction(m50_objective, AutoZygote()), pretrained_pas |> Vector)
+# #* 4 define the callback function
+# loss_history = []
+# callback_func!(state, l) = begin
+#     push!(loss_history, (iter=state.iter, loss=l, time=now()))
+#     println("iter: $(state.iter), loss: $l, time: $(now())")
+#     false
+# end
+# #* 5 solve the optimization problem
+# m50_sol = solve(m50_opt_prob, Adam(1e-2), maxiters=100, callback=callback_func!)
+# #* 6 more training
+# more_m50_opt_prob = OptimizationProblem(OptimizationFunction(m50_objective, AutoZygote()), m50_sol.u)
+# more_m50_sol = solve(more_m50_opt_prob, LBFGS(linesearch = BackTracking()), maxiters=20, callback=callback_func!)
 
-#* plot the results
-m50_output = m50_model(input_mat, ComponentVector(more_m50_sol.u, pas_axes), initstates=exphydro_initstates, config=config)[end, :]
-pretrained_output = exp.(q_nn_flux(q_input_matrix, ComponentVector(q_sol.u, qnn_axes))[1, :])
-m50_pretrained_output = m50_model(input_mat, pretrained_pas, initstates=exphydro_initstates, config=config)[end, :]
+# #* plot the results
+# m50_output = m50_model(input_mat, ComponentVector(more_m50_sol.u, pas_axes), initstates=exphydro_initstates, config=config)[end, :]
+# pretrained_output = exp.(q_nn_flux(q_input_matrix, ComponentVector(q_sol.u, qnn_axes))[1, :])
+# m50_pretrained_output = m50_model(input_mat, pretrained_pas, initstates=exphydro_initstates, config=config)[end, :]
 
-@info nse(flow_vec, m50_output)
-@info nse(flow_vec, pretrained_output)
-@info nse(flow_vec, m50_pretrained_output)
+# @info nse(flow_vec, m50_output)
+# @info nse(flow_vec, pretrained_output)
+# @info nse(flow_vec, m50_pretrained_output)
 
 # plot(ts, m50_output, label="m50", lw=1)
 # plot!(ts, qobs_vec, label="obs", lw=1)

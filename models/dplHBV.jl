@@ -24,17 +24,14 @@ end
 @variables BETA GAMMA
 @parameters TT CFMAX CFR CWH LP FC PPERC UZL k0 k1 k2 kp
 
-#* parameters estimate by NN
+#* parameters estimate by LSTM
 params_nn = Lux.Chain(LSTMCompact(3, 10, 2), name=:pnn)
 nn_flux = @neuralflux [BETA, GAMMA] ~ params_nn([prcp, temp, pet])
 
-#* snowfall and rainfall split flux
 split_flux = @hydroflux begin
     snowfall ~ step_func(TT - temp) * prcp
     rainfall ~ step_func(temp - TT) * prcp
 end
-
-#* snowpack bucket
 snow_bucket = @hydrobucket begin
     fluxes = begin
         @hydroflux melt ~ min(snowpack, max(0.0, temp - TT) * CFMAX)
@@ -46,7 +43,6 @@ snow_bucket = @hydrobucket begin
         @stateflux meltwater ~ melt - (refreeze + infil)
     end
 end
-
 soil_bucket = @hydrobucket begin
     fluxes = begin
         @hydroflux recharge ~ (rainfall + infil) * clamp(max(0.0, soilwater / FC)^(BETA * 5 + 1), 0, 1)
@@ -57,8 +53,6 @@ soil_bucket = @hydrobucket begin
         @stateflux soilwater ~ (rainfall + infil) - (recharge + excess + evap)
     end
 end
-
-#* up and low zone bucket
 zone_bucket = @hydrobucket begin
     fluxes = begin
         @hydroflux perc ~ suz * PPERC
@@ -72,7 +66,6 @@ zone_bucket = @hydrobucket begin
         @stateflux slz ~ perc - q2
     end
 end
-
 dpl_hbv_model = @hydromodel begin
     nn_flux
     split_flux

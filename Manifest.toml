@@ -2,7 +2,7 @@
 
 julia_version = "1.11.2"
 manifest_format = "2.0"
-project_hash = "00b006d284634a64a1ac6ef25c35aa12e96ba745"
+project_hash = "204e3916b35a73a14fd91738ce49e14c1e865473"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "e2478490447631aedba0823d4d7a80b2cc8cdb32"
@@ -951,6 +951,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "d55dffd9ae73ff72f1c0482454dcf2ec6c6c4a63"
 uuid = "2e619515-83b5-522b-bb60-26c02a35a201"
 version = "2.6.5+0"
+
+[[deps.ExplainableAI]]
+deps = ["ADTypes", "DifferentiationInterface", "Distributions", "ProgressMeter", "Random", "Reexport", "Statistics", "XAIBase"]
+git-tree-sha1 = "bc44a65226020ecf03b5a0628e95bb5a8266d9e9"
+uuid = "4f1bc3e1-d60d-4ed0-9367-9bdff9846d3b"
+version = "0.10.2"
 
 [[deps.ExponentialUtilities]]
 deps = ["Adapt", "ArrayInterface", "GPUArraysCore", "GenericSchur", "LinearAlgebra", "PrecompileTools", "Printf", "SparseArrays", "libblastrampoline_jll"]
@@ -3830,6 +3836,11 @@ version = "1.0.0"
 git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
 uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
 version = "1.6.1"
+
+[[deps.XAIBase]]
+git-tree-sha1 = "605dfd720c2b26e5d0b8f475122a1a77e0d7adaa"
+uuid = "9b48221d-a747-4c1b-9860-46a1d8ba24a7"
+version = "4.0.1"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]

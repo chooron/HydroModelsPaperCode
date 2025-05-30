@@ -1,21 +1,34 @@
 #* build UH-based Model
 @variables q q_routed
 @parameters lag
-uhfunc = UHFunction(:UH_1_HALF)
-uh_route = UnitHydrograph([q]=>[q_routed], lag; uhfunc=uhfunc)
-dpl_hbv_uh = HydroModel(name=:rapid_hbv, components=[dpl_hbv_model.components..., uh_route])
-sum_dpl_hbv_uh = WeightSumComponentOutlet(dpl_hbv_uh, [q_routed])
+
+uh1 = HydroModels.@unithydro :maxbas_uh begin
+    uh_func = begin
+        lag => (t / lag)^2.5
+    end
+    uh_vars = [q]
+    configs = (solvetype=:SPARSE, outputs=[q_routed])
+end
+
+dpl_hbv_uh = HydroModel(name=:rapid_hbv, components=[dpl_hbv_model.components..., uh1])
+sum_dpl_hbv_uh = HydroWrapper(dpl_hbv_uh, post=(output) -> sum(output, dims=2))
 
 #* build Grid-Based Model
-HRU_AREA = (0.1 * 111)^2
-@variables q s_river q_routed
+@variables s_river q_routed
 @parameters lag
-grid_basin_info = load("tutorials/distributed/data/grid_basin_info.jld2")
+grid_basin_info = load("data/hanjiang/grid_basin_info.jld2")
 flwdir_matrix = grid_basin_info["flwdir_matrix"]
-index_info = grid_basin_info["index_info"]
-rflux = HydroFlux([q, s_river] => [q_routed], [lag], exprs=[s_river / (1 + lag) + q])
-grid_route = GridRoute(rfunc=rflux, rstate=s_river, flwdir=flwdir_matrix, positions=index_info)
-dpl_hbv_grid = HydroModel(name=:rapid_hbv, components=[dpl_hbv_model.components..., grid_route])
+index_info = collect.(grid_basin_info["index_info"])
+grid_route = @hydroroute begin
+    fluxes = begin
+        @hydroflux q_routed ~ s_river / (1 + lag)
+    end
+    dfluxes = begin
+        @stateflux s_river ~ q - q_routed
+    end
+    aggr_func = HydroModels.build_aggr_func(flwdir_matrix, index_info)
+end
+dpl_hbv_grid = HydroModel(name=:grid_hbv, components=[dpl_hbv_model.components..., grid_route])
 
 #* build Rapid-Based Model
 @variables q flow flow_routed

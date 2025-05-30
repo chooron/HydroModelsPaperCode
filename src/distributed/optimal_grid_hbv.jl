@@ -58,5 +58,4 @@ node_initstates = ComponentVector(NamedTuple{keys(merge_initstates)}(
 config = (timeidx=time_idx, solver=HydroModels.ODESolver())
 hbv_grid_output = hbv_grid(input_arr, node_params, initstates=node_initstates, config=config)
 output_105 = hbv_grid_output[:, 105, :]
-plot(output_105[end, :], label="sim")
-plot!(flow_vec, label="obs")
+

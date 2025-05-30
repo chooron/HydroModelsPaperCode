@@ -1,0 +1,20 @@
+[project]
+name = "hydromodelspapercode"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "diffrax>=0.7.0",
+    "interpax>=0.3.8",
+    "jax>=0.6.1",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.3",
+    "numba>=0.61.2",
+    "numpy>=2.2.6",
+    "pandas>=2.2.3",
+    "ravenpy>=0.18.2",
+    "torch>=2.7.0",
+    "torchcde>=0.2.5",
+    "torchdiffeq>=0.2.5",
+]

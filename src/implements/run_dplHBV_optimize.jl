@@ -34,7 +34,7 @@ input_arr = stack(input[HydroModels.get_input_names(dpl_hbv_model)], dims=1)
 
 #* define config
 config = (solver=ODESolver(), timeidx=ts, interp=LinearInterpolation)
-predict_before_opt = dpl_hbv_model(input_arr, pas, initstates=init_states, config=config)
+predict_result = dpl_hbv_model(input_arr, pas, initstates=init_states, config=config)
 
 #* define optimization problem
 loss_fn(y, y_hat) = rse(y[365:end], y_hat[end, 365:end])

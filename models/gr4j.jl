@@ -1,62 +1,83 @@
 using HydroModels
 using ModelingToolkit: @parameters, @variables
 
-# Parameters in the GR4J model
-@parameters x1 x2 x3 x4 lag area_coef
+# Model variables
+@variables P [description = "Precipitation input", unit = "mm/d"]
+@variables Ep [description = "Potential evapotranspiration input", unit = "mm/d"]
+@variables ps [description = "Net rainfall that enters the production store", unit = "mm/d"]
+@variables pn [description = "Net rainfall (precipitation minus evapotranspiration when positive)", unit = "mm/d"]
+@variables es [description = "Actual evaporation from the production store", unit = "mm/d"]
+@variables en [description = "Net evaporation (evapotranspiration minus precipitation when positive)", unit = "mm/d"]
+@variables perc [description = "Percolation from production store to routing", unit = "mm/d"]
+@variables Q9 [description = "Slow flow component", unit = "mm/d"]
+@variables Q1 [description = "Fast flow component", unit = "mm/d"]
+@variables Q9_routed [description = "Slow flow component routed through unit hydrograph 1", unit = "mm/d"]
+@variables Q1_routed [description = "Fast flow component routed through unit hydrograph 2", unit = "mm/d"]
+@variables Qroute [description = "Outflow from routing store", unit = "mm/d"]
+@variables Qt [description = "Total runoff", unit = "mm/d"]
+@variables exch [description = "Water exchange between groundwater and surface water", unit = "mm/d"]
+@variables t
 
-# Variables in different components
-# Production store
-@variables prcp ep soilwater pn en ps es perc pr slowflow fastflow
-# Unit hydrograph
-@variables slowflow_routed fastflow_routed
-# Routing store
-@variables routingstore exch routedflow flow q q_routed s_river
+@variables S [description = "Production store level", unit = "mm"]
+@variables R [description = "Routing store level", unit = "mm"]
+# Model parameters
+@parameters x1 [description = "Maximum soil moisture storage", bounds = (1, 2000), unit = "mm"]
+@parameters x2 [description = "Subsurface water exchange", bounds = (-20, 20), unit = "mm/d"]
+@parameters x3 [description = "Routing store depth", bounds = (1, 300), unit = "mm"]
+@parameters x4 [description = "Unit Hydrograph time base = (5, 15)", bounds = (5, 15), unit = "d"]
 
-# Production store bucket
-prod_bucket = @hydrobucket :gr4j_prod begin
+bucket1 = @hydrobucket :bucket1 begin
     fluxes = begin
-        @hydroflux begin
-            pn ~ prcp - min(prcp, ep)
-            en ~ ep - min(prcp, ep)
-        end,
-        @hydroflux ps ~ max(0.0, pn * (1 - (soilwater / x1)^2)),
-        @hydroflux es ~ en * (2 * soilwater / x1 - (soilwater / x1)^2),
-        @hydroflux perc ~ ((x1)^(-4)) / 4 * ((4 / 9)^(4)) * (soilwater^5),
-        @hydroflux pr ~ pn - ps + perc,
-        @hydroflux begin
-            slowflow ~ 0.9 * pr
-            fastflow ~ 0.1 * pr
-        end
+        @hydroflux pn ~ max(0.0, P - Ep)
+        @hydroflux en ~ max(0.0, Ep - P)
+        @hydroflux ps ~ pn * (1 - (S / x1)^2)
+        @hydroflux es ~ min(S, en * (2S / x1 - (S / x1)^2))
+        @hydroflux perc ~ min(S, ((x1)^-4) / 4 * ((4 / 9)^-4) * (S^5))
     end
     dfluxes = begin
-        @stateflux soilwater ~ ps - (es + perc)
+        @stateflux S ~ ps - es - perc
     end
 end
 
-# Routing store bucket
-routing_bucket = @hydrobucket :gr4j_rst begin
+split_flux = @hydroflux begin
+    Q9 ~ (perc + pn - ps) * 0.9
+    Q1 ~ (perc + pn - ps) * 0.1
+end
+
+uh_1 = @unithydro begin
+    uh_func = begin
+        x4 => (t / x4)^2.5
+    end
+    uh_vars = [Q9]
+    configs = (solvetype=:SPARSE, suffix=:_routed)
+end
+
+uh_2 = @unithydro begin
+    uh_func = begin
+        2x4 => (1 - 0.5 * (2 - t / x4)^2.5)
+        x4 => (0.5 * (t / x4)^2.5)
+    end
+    uh_vars = [Q1]
+    configs = (solvetype=:SPARSE, suffix=:_routed)
+end
+
+bucket2 = @hydrobucket :bucket2 begin
     fluxes = begin
-        @hydroflux exch ~ x2 * abs(routingstore / x3)^3.5,
-        @hydroflux routedflow ~ x3^(-4) / 4 * (routingstore + slowflow + exch)^5,
-        @hydroflux flow ~ routedflow + max(fastflow_routed + exch, 0.0)
+        @hydroflux exch ~ x2 * max(0.0, R / x3)^3.5
+        @hydroflux Qroute ~ min(R, x3^(-4) / 4 * (max(0.0, R))^5)
+        @hydroflux Qt ~ Qroute + max(Q1_routed + exch, 0.0)
     end
     dfluxes = begin
-        @stateflux routingstore ~ slowflow + exch - routedflow
+        @stateflux R ~ Q9_routed + exch - Qroute
     end
 end
 
-# Unit hydrograph components
-uh_flux_1 = HydroModels.UnitHydroFlux(slowflow, slowflow_routed, x4, 
-    uhfunc=HydroModels.UHFunction(:UH_1_HALF), solvetype=:SPARSE)
-uh_flux_2 = HydroModels.UnitHydroFlux(fastflow, fastflow_routed, x4, 
-    uhfunc=HydroModels.UHFunction(:UH_2_FULL), solvetype=:SPARSE)
-
-# Create the complete model
 gr4j_model = @hydromodel :gr4j begin
-    prod_bucket
-    uh_flux_1
-    uh_flux_2
-    routing_bucket
+    bucket1
+    split_flux
+    uh_1
+    uh_2
+    bucket2
 end
 
-export gr4j_model, prod_bucket, routing_bucket, uh_flux_1, uh_flux_2
+export gr4j_model
